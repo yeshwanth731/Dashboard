@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-logo">Dashboard</span>
+            <button id="sidebar-toggle" class="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <nav class="sidebar-menu">
+            <div class="menu-item">
+                <a href="/" class="menu-link">
+                    <div class="menu-icon"></div>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </div>
+            <div class="menu-item">
+                <a href="{{ url_for('Milestone') }}" class="menu-link">
+                    <div class="menu-icon"></div>
+                    <span class="menu-text">Key Milestone</span>
+                </a>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-link">
+                    <div class="menu-icon"></div>
+                    <span class="menu-text">All Autosys Job</span>
+                    <i class="fas fa-chevron-right menu-arrow"></i>
+                </div>
+                <div class="submenu">
+                    <a href="{{url_for('All_runtime') }}" class="submenu-item">Runtime</a>
+                    <a href="/All Autosys Job/AllWeekly" class="submenu-item">Weekly</a>                    
+                </div>
+            </div>
+            
+            <div class="menu-item">
+                <div class="menu-link">
+                    <div class="menu-icon"></div>
+                    <span class="menu-text">Critical</span>
+                    <i class="fas fa-chevron-right menu-arrow"></i>
+                </div>
+                <div class="submenu">
+                    <a href="/Critical/Runtime" class="submenu-item">Runtime</a>
+                    <a href="/Critical/Weekly" class="submenu-item">Weekly</a>
+                </div>
+            </div>
+        </nav>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="header">
+            <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            <!-- Theme Toggle -->
+            <div id="theme-toggle" class="theme-toggle">
+                <div id="light-mode" class="theme-icon active">
+                    <i class="fas fa-sun"></i>
+                </div>
+                <div id="dark-mode" class="theme-icon">
+                    <i class="fas fa-moon"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page Content -->
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/datatable.js') }}"></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

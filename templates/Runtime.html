@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Runtime{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Runtime</h2>
+        <div>
+            <button class="btn" style="padding: 8px 16px; background-color: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                <i class="fas fa-plus"></i> Add New
+            </button>
+        </div>
+    </div>
+    <div class="table-wrapper">
+        <div class="table-wrapper">
+            <table id="runtime-table" class="display responsive nowrap" style="width: 100%;">
+                <thead>
+                    <tr>
+                        {% for col in columns %}
+                            <th>{ col }</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        {% for col in columns %}
+                            <td>{{ user[col] }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+
+{% endblock %}
+
