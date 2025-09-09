@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Cognitive Search Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .config-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .field-item, .skill-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .json-viewer {
+            background: #2d3748;
+            color: #e2e8f0;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-search me-2"></i>Azure Cognitive Search Manager
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Index Configuration -->
+            <div class="col-md-6">
+                <div class="config-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-database me-2"></i>Search Index Configuration</h4>
+                        <div>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal">
+                                <i class="fas fa-plus"></i> Add Field
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadConfig('index')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="indexFields">
+                        {% for field in index_config.fields %}
+                        <div class="field-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ field.name }}</strong>
+                                    <span class="badge bg-secondary ms-2">{{ field.type }}</span>
+                                    {% if field.key %}<span class="badge bg-warning">Key</span>{% endif %}
+                                    {% if field.searchable %}<span class="badge bg-info">Searchable</span>{% endif %}
+                                    {% if field.filterable %}<span class="badge bg-success">Filterable</span>{% endif %}
+                                    {% if field.sortable %}<span class="badge bg-primary">Sortable</span>{% endif %}
+                                    {% if field.facetable %}<span class="badge bg-dark">Facetable</span>{% endif %}
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeField('{{ field.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skillset Configuration -->
+            <div class="col-md-6">
+                <div class="config-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-cogs me-2"></i>Skillset Configuration</h4>
+                        <div>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+                                <i class="fas fa-plus"></i> Add Skill
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadConfig('skillset')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="skillsetSkills">
+                        {% for skill in skillset_config.skills %}
+                        <div class="skill-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ skill.name }}</strong>
+                                    <p class="mb-1 text-muted">{{ skill.description }}</p>
+                                    <small class="text-muted">Context: {{ skill.context }}</small>
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeSkill('{{ skill.name }}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON Viewer -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="config-section">
+                    <h4><i class="fas fa-code me-2"></i>Configuration JSON</h4>
+                    <ul class="nav nav-tabs" id="jsonTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="index-tab" data-bs-toggle="tab" data-bs-target="#index-json" type="button">
+                                Index JSON
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="skillset-tab" data-bs-toggle="tab" data-bs-target="#skillset-json" type="button">
+                                Skillset JSON
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="jsonTabContent">
+                        <div class="tab-pane fade show active" id="index-json">
+                            <pre class="json-viewer" id="indexJsonViewer">{{ index_config | tojson(indent=2) }}</pre>
+                        </div>
+                        <div class="tab-pane fade" id="skillset-json">
+                            <pre class="json-viewer" id="skillsetJsonViewer">{{ skillset_config | tojson(indent=2) }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Field Modal -->
+    <div class="modal fade" id="addFieldModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Index Field</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addFieldForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fieldName" class="form-label">Field Name</label>
+                            <input type="text" class="form-control" id="fieldName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fieldType" class="form-label">Field Type</label>
+                            <select class="form-select" id="fieldType" required>
+                                <option value="Edm.String">Edm.String</option>
+                                <option value="Edm.Int32">Edm.Int32</option>
+                                <option value="Edm.Int64">Edm.Int64</option>
+                                <option value="Edm.Double">Edm.Double</option>
+                                <option value="Edm.Boolean">Edm.Boolean</option>
+                                <option value="Edm.DateTimeOffset">Edm.DateTimeOffset</option>
+                                <option value="Collection(Edm.String)">Collection(Edm.String)</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="searchable" checked>
+                                    <label class="form-check-label" for="searchable">Searchable</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="filterable">
+                                    <label class="form-check-label" for="filterable">Filterable</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sortable">
+                                    <label class="form-check-label" for="sortable">Sortable</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="facetable">
+                                    <label class="form-check-label" for="facetable">Facetable</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="isKey">
+                            <label class="form-check-label" for="isKey">Key Field</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Field</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Skill Modal -->
+    <div class="modal fade" id="addSkillModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Skillset Skill</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addSkillForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="skillName" class="form-label">Skill Name</label>
+                            <input type="text" class="form-control" id="skillName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="skillDescription" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillContext" class="form-label">Context</label>
+                            <input type="text" class="form-control" id="skillContext" placeholder="/document/content" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillType" class="form-label">Skill Type</label>
+                            <select class="form-select" id="skillType">
+                                <option value="Microsoft.Skills.Text.EntityRecognitionSkill">Entity Recognition</option>
+                                <option value="Microsoft.Skills.Text.SplitSkill">Text Split</option>
+                                <option value="Microsoft.Skills.Text.LanguageDetectionSkill">Language Detection</option>
+                                <option value="Microsoft.Skills.Text.KeyPhraseExtractionSkill">Key Phrase Extraction</option>
+                                <option value="Microsoft.Skills.Text.SentimentSkill">Sentiment Analysis</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Skill</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add Field functionality
+        document.getElementById('addFieldForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('field_name', document.getElementById('fieldName').value);
+            formData.append('field_type', document.getElementById('fieldType').value);
+            formData.append('searchable', document.getElementById('searchable').checked);
+            formData.append('filterable', document.getElementById('filterable').checked);
+            formData.append('sortable', document.getElementById('sortable').checked);
+            formData.append('facetable', document.getElementById('facetable').checked);
+            formData.append('is_key', document.getElementById('isKey').checked);
+            
+            try {
+                const response = await fetch('/api/index/fields', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Error adding field');
+                }
+            } catch (error) {
+                alert('Error adding field: ' + error.message);
+            }
+        });
+
+        // Add Skill functionality
+        document.getElementById('addSkillForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('skill_name', document.getElementById('skillName').value);
+            formData.append('skill_description', document.getElementById('skillDescription').value);
+            formData.append('skill_context', document.getElementById('skillContext').value);
+            formData.append('skill_type', document.getElementById('skillType').value);
+            
+            try {
+                const response = await fetch('/api/skillset/skills', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Error adding skill');
+                }
+            } catch (error) {
+                alert('Error adding skill: ' + error.message);
+            }
+        });
+
+        // Remove Field functionality
+        async function removeField(fieldName) {
+            if (confirm(`Are you sure you want to remove field "${fieldName}"?`)) {
+                try {
+                    const response = await fetch(`/api/index/fields/${fieldName}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error removing field');
+                    }
+                } catch (error) {
+                    alert('Error removing field: ' + error.message);
+                }
+            }
+        }
+
+        // Remove Skill functionality
+        async function removeSkill(skillName) {
+            if (confirm(`Are you sure you want to remove skill "${skillName}"?`)) {
+                try {
+                    const response = await fetch(`/api/skillset/skills/${skillName}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error removing skill');
+                    }
+                } catch (error) {
+                    alert('Error removing skill: ' + error.message);
+                }
+            }
+        }
+
+        // Download configuration
+        function downloadConfig(type) {
+            window.open(`/api/download/${type}`, '_blank');
+        }
+    </script>
+</body>
+</html>
