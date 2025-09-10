@@ -18,9 +18,38 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Templates
 templates = Jinja2Templates(directory="templates")
 
-# Configuration directory
-CONFIG_DIR = "azure_configs"
+# =============================================================================
+# CONFIGURATION SETTINGS - Import from config.py
+# =============================================================================
+
+try:
+    from config import (
+        CONFIG_DIR, 
+        INDEX_FILE_PATH, 
+        SKILLSET_FILE_PATH,
+        HOST,
+        PORT,
+        AUTO_CREATE_SAMPLE_FILES
+    )
+    print("✅ Configuration loaded from config.py")
+except ImportError:
+    # Fallback configuration if config.py doesn't exist
+    CONFIG_DIR = "azure_configs"
+    INDEX_FILE_PATH = os.path.join(CONFIG_DIR, "search_index.json")
+    SKILLSET_FILE_PATH = os.path.join(CONFIG_DIR, "search_skillset.json")
+    HOST = "0.0.0.0"
+    PORT = 8000
+    AUTO_CREATE_SAMPLE_FILES = True
+    print("⚠️  Using default configuration (config.py not found)")
+
+# Create configuration directory if it doesn't exist
 os.makedirs(CONFIG_DIR, exist_ok=True)
+
+# Print configuration info
+print(f"📁 Configuration directory: {CONFIG_DIR}")
+print(f"📄 Index file path: {INDEX_FILE_PATH}")
+print(f"📄 Skillset file path: {SKILLSET_FILE_PATH}")
+print(f"🌐 Server will run on: {HOST}:{PORT}")
 
 # Pydantic models for validation
 class IndexField(BaseModel):
@@ -57,10 +86,9 @@ class SkillSetConfig(BaseModel):
     cognitiveServices: Optional[Dict] = None
 
 class SearchConfigManager:
-    def __init__(self, config_dir: str):
-        self.config_dir = config_dir
-        self.index_file = os.path.join(config_dir, "search_index.json")
-        self.skillset_file = os.path.join(config_dir, "search_skillset.json")
+    def __init__(self, index_file_path: str, skillset_file_path: str):
+        self.index_file = index_file_path
+        self.skillset_file = skillset_file_path
     
     def load_index_config(self) -> Dict:
         """Load index configuration from JSON file"""
@@ -158,9 +186,35 @@ class SearchConfigManager:
             ],
             "cognitiveServices": None
         }
+    
+    def create_sample_files(self) -> bool:
+        """Create sample JSON configuration files if they don't exist"""
+        try:
+            # Create sample index file
+            if not os.path.exists(self.index_file):
+                sample_index = self._get_default_index_config()
+                with open(self.index_file, 'w', encoding='utf-8') as f:
+                    json.dump(sample_index, f, indent=2, ensure_ascii=False)
+                print(f"✅ Created sample index file: {self.index_file}")
+            
+            # Create sample skillset file
+            if not os.path.exists(self.skillset_file):
+                sample_skillset = self._get_default_skillset_config()
+                with open(self.skillset_file, 'w', encoding='utf-8') as f:
+                    json.dump(sample_skillset, f, indent=2, ensure_ascii=False)
+                print(f"✅ Created sample skillset file: {self.skillset_file}")
+            
+            return True
+        except Exception as e:
+            print(f"❌ Error creating sample files: {e}")
+            return False
 
 # Initialize config manager
-config_manager = SearchConfigManager(CONFIG_DIR)
+config_manager = SearchConfigManager(INDEX_FILE_PATH, SKILLSET_FILE_PATH)
+
+# Create sample JSON files if they don't exist
+if AUTO_CREATE_SAMPLE_FILES:
+    config_manager.create_sample_files()
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
@@ -293,17 +347,45 @@ async def upload_config_file(file: UploadFile = File(...)):
         content = await file.read()
         config_data = json.loads(content.decode('utf-8'))
         
-        if file.filename == "search_index.json":
-            config_manager.save_index_config(config_data)
-            return {"message": "Index configuration uploaded successfully"}
-        elif file.filename == "search_skillset.json":
-            config_manager.save_skillset_config(config_data)
-            return {"message": "Skillset configuration uploaded successfully"}
+        # Check file extension and determine type
+        if file.filename and file.filename.endswith('.json'):
+            if 'index' in file.filename.lower() or 'search' in file.filename.lower():
+                config_manager.save_index_config(config_data)
+                return {
+                    "message": "Index configuration uploaded successfully",
+                    "file_path": INDEX_FILE_PATH,
+                    "file_name": file.filename
+                }
+            elif 'skill' in file.filename.lower():
+                config_manager.save_skillset_config(config_data)
+                return {
+                    "message": "Skillset configuration uploaded successfully",
+                    "file_path": SKILLSET_FILE_PATH,
+                    "file_name": file.filename
+                }
+            else:
+                # Try to determine type from content structure
+                if 'fields' in config_data:
+                    config_manager.save_index_config(config_data)
+                    return {
+                        "message": "Index configuration uploaded successfully (detected from content)",
+                        "file_path": INDEX_FILE_PATH,
+                        "file_name": file.filename
+                    }
+                elif 'skills' in config_data:
+                    config_manager.save_skillset_config(config_data)
+                    return {
+                        "message": "Skillset configuration uploaded successfully (detected from content)",
+                        "file_path": SKILLSET_FILE_PATH,
+                        "file_name": file.filename
+                    }
+                else:
+                    raise HTTPException(status_code=400, detail="Cannot determine configuration type. File must contain 'fields' (index) or 'skills' (skillset)")
         else:
-            raise HTTPException(status_code=400, detail="Invalid file name. Use 'search_index.json' or 'search_skillset.json'")
+            raise HTTPException(status_code=400, detail="File must have .json extension")
     
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON file")
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON file: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -327,5 +409,16 @@ async def download_config(config_type: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/config/paths")
+async def get_config_paths():
+    """Get current configuration file paths"""
+    return {
+        "config_directory": CONFIG_DIR,
+        "index_file_path": INDEX_FILE_PATH,
+        "skillset_file_path": SKILLSET_FILE_PATH,
+        "index_file_exists": os.path.exists(INDEX_FILE_PATH),
+        "skillset_file_exists": os.path.exists(SKILLSET_FILE_PATH)
+    }
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=HOST, port=PORT)
