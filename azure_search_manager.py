@@ -163,22 +163,14 @@ class SearchConfigManager:
 config_manager = SearchConfigManager(CONFIG_DIR)
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    """Main dashboard page"""
+async def dashboard():
+    """Main dashboard page - serve static HTML"""
     try:
-        index_config = config_manager.load_index_config()
-        skillset_config = config_manager.load_skillset_config()
-        
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
-            "index_config": index_config,
-            "skillset_config": skillset_config
-        })
+        with open("static/index.html", "r", encoding="utf-8") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content)
     except Exception as e:
-        return templates.TemplateResponse("error.html", {
-            "request": request,
-            "error": str(e)
-        })
+        return HTMLResponse(content=f"<h1>Error loading page</h1><p>{str(e)}</p>", status_code=500)
 
 @app.get("/api/index")
 async def get_index_config():

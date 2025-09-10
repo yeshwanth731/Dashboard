@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Cognitive Search Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-search me-2"></i>Azure Cognitive Search Manager
+            </span>
+            <div class="navbar-nav flex-row">
+                <a class="nav-link text-white me-3" href="#" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </a>
+                <a class="nav-link text-white" href="#" onclick="showHelp()">
+                    <i class="fas fa-question-circle"></i> Help
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="text-center" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading configurations...</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-danger alert-dismissible fade" role="alert" style="display: none;">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span id="errorMessage"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Success Alert -->
+        <div id="successAlert" class="alert alert-success alert-dismissible fade" role="alert" style="display: none;">
+            <i class="fas fa-check-circle me-2"></i>
+            <span id="successMessage"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row">
+            <!-- Index Configuration -->
+            <div class="col-md-6">
+                <div class="config-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-database me-2"></i>Search Index Configuration</h4>
+                        <div>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal">
+                                <i class="fas fa-plus"></i> Add Field
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadConfig('index')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="uploadConfig('index')">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="indexFields">
+                        <!-- Fields will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skillset Configuration -->
+            <div class="col-md-6">
+                <div class="config-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4><i class="fas fa-cogs me-2"></i>Skillset Configuration</h4>
+                        <div>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+                                <i class="fas fa-plus"></i> Add Skill
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadConfig('skillset')">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button class="btn btn-info btn-sm" onclick="uploadConfig('skillset')">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="skillsetSkills">
+                        <!-- Skills will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON Viewer -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="config-section">
+                    <h4><i class="fas fa-code me-2"></i>Configuration JSON</h4>
+                    <ul class="nav nav-tabs" id="jsonTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="index-tab" data-bs-toggle="tab" data-bs-target="#index-json" type="button">
+                                Index JSON
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="skillset-tab" data-bs-toggle="tab" data-bs-target="#skillset-json" type="button">
+                                Skillset JSON
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="jsonTabContent">
+                        <div class="tab-pane fade show active" id="index-json">
+                            <pre class="json-viewer" id="indexJsonViewer"></pre>
+                        </div>
+                        <div class="tab-pane fade" id="skillset-json">
+                            <pre class="json-viewer" id="skillsetJsonViewer"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Field Modal -->
+    <div class="modal fade" id="addFieldModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Index Field</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addFieldForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fieldName" class="form-label">Field Name</label>
+                            <input type="text" class="form-control" id="fieldName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fieldType" class="form-label">Field Type</label>
+                            <select class="form-select" id="fieldType" required>
+                                <option value="Edm.String">Edm.String</option>
+                                <option value="Edm.Int32">Edm.Int32</option>
+                                <option value="Edm.Int64">Edm.Int64</option>
+                                <option value="Edm.Double">Edm.Double</option>
+                                <option value="Edm.Boolean">Edm.Boolean</option>
+                                <option value="Edm.DateTimeOffset">Edm.DateTimeOffset</option>
+                                <option value="Collection(Edm.String)">Collection(Edm.String)</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="searchable" checked>
+                                    <label class="form-check-label" for="searchable">Searchable</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="filterable">
+                                    <label class="form-check-label" for="filterable">Filterable</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sortable">
+                                    <label class="form-check-label" for="sortable">Sortable</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="facetable">
+                                    <label class="form-check-label" for="facetable">Facetable</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="isKey">
+                            <label class="form-check-label" for="isKey">Key Field</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Field</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Skill Modal -->
+    <div class="modal fade" id="addSkillModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Skillset Skill</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addSkillForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="skillName" class="form-label">Skill Name</label>
+                            <input type="text" class="form-control" id="skillName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="skillDescription" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillContext" class="form-label">Context</label>
+                            <input type="text" class="form-control" id="skillContext" placeholder="/document/content" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="skillType" class="form-label">Skill Type</label>
+                            <select class="form-select" id="skillType">
+                                <option value="Microsoft.Skills.Text.EntityRecognitionSkill">Entity Recognition</option>
+                                <option value="Microsoft.Skills.Text.SplitSkill">Text Split</option>
+                                <option value="Microsoft.Skills.Text.LanguageDetectionSkill">Language Detection</option>
+                                <option value="Microsoft.Skills.Text.KeyPhraseExtractionSkill">Key Phrase Extraction</option>
+                                <option value="Microsoft.Skills.Text.SentimentSkill">Sentiment Analysis</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Skill</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Configuration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="uploadForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="configFile" class="form-label">Select JSON File</label>
+                            <input type="file" class="form-control" id="configFile" accept=".json" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="configType" class="form-label">Configuration Type</label>
+                            <select class="form-select" id="configType" required>
+                                <option value="index">Search Index</option>
+                                <option value="skillset">Skillset</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Help & Documentation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Getting Started</h6>
+                    <p>This tool helps you manage Azure Cognitive Search index and skillset configurations through a simple web interface.</p>
+                    
+                    <h6>Managing Index Fields</h6>
+                    <ul>
+                        <li><strong>Add Field:</strong> Click "Add Field" to create new searchable fields</li>
+                        <li><strong>Field Types:</strong> Choose from various Azure field types (String, Int32, Boolean, etc.)</li>
+                        <li><strong>Properties:</strong> Set searchable, filterable, sortable, and facetable properties</li>
+                        <li><strong>Key Field:</strong> Mark one field as the unique key</li>
+                    </ul>
+                    
+                    <h6>Managing Skillset Skills</h6>
+                    <ul>
+                        <li><strong>Add Skill:</strong> Click "Add Skill" to add processing skills</li>
+                        <li><strong>Skill Types:</strong> Choose from entity recognition, text splitting, language detection, etc.</li>
+                        <li><strong>Context:</strong> Set the document context for skill processing</li>
+                    </ul>
+                    
+                    <h6>File Operations</h6>
+                    <ul>
+                        <li><strong>Download:</strong> Export current configurations as JSON files</li>
+                        <li><strong>Upload:</strong> Replace configurations by uploading new JSON files</li>
+                        <li><strong>JSON Preview:</strong> View formatted JSON in real-time</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for uploads -->
+    <input type="file" id="hiddenFileInput" style="display: none;" accept=".json">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
