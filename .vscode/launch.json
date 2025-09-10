@@ -1,0 +1,61 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Azure Search Manager - Development",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/azure_search_manager.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "ENVIRONMENT": "development",
+                "DEBUG": "True"
+            },
+            "args": [],
+            "justMyCode": false
+        },
+        {
+            "name": "Azure Search Manager - Production",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/azure_search_manager.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "ENVIRONMENT": "production",
+                "DEBUG": "False"
+            },
+            "args": [],
+            "justMyCode": false
+        },
+        {
+            "name": "Test JSON Files",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_json_files.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [],
+            "justMyCode": false
+        },
+        {
+            "name": "Test Static Files",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/test_static.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [],
+            "justMyCode": false
+        }
+    ]
+}

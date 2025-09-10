@@ -19,37 +19,26 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # =============================================================================
-# CONFIGURATION SETTINGS - Import from config.py
+# CONFIGURATION SETTINGS - Load from environment variables
 # =============================================================================
 
-try:
-    from config import (
-        CONFIG_DIR, 
-        INDEX_FILE_PATH, 
-        SKILLSET_FILE_PATH,
-        HOST,
-        PORT,
-        AUTO_CREATE_SAMPLE_FILES
-    )
-    print("✅ Configuration loaded from config.py")
-except ImportError:
-    # Fallback configuration if config.py doesn't exist
-    CONFIG_DIR = "azure_configs"
-    INDEX_FILE_PATH = os.path.join(CONFIG_DIR, "search_index.json")
-    SKILLSET_FILE_PATH = os.path.join(CONFIG_DIR, "search_skillset.json")
-    HOST = "0.0.0.0"
-    PORT = 8000
-    AUTO_CREATE_SAMPLE_FILES = True
-    print("⚠️  Using default configuration (config.py not found)")
+from env_config import config
 
-# Create configuration directory if it doesn't exist
-os.makedirs(CONFIG_DIR, exist_ok=True)
+# Use environment configuration
+CONFIG_DIR = config.CONFIG_DIR
+INDEX_FILE_PATH = config.INDEX_FILE_PATH
+SKILLSET_FILE_PATH = config.SKILLSET_FILE_PATH
+HOST = config.HOST
+PORT = config.PORT
+AUTO_CREATE_SAMPLE_FILES = config.AUTO_CREATE_SAMPLE_FILES
+DEBUG = config.DEBUG
+ENVIRONMENT = config.ENVIRONMENT
+
+# Create necessary directories
+config.create_directories()
 
 # Print configuration info
-print(f"📁 Configuration directory: {CONFIG_DIR}")
-print(f"📄 Index file path: {INDEX_FILE_PATH}")
-print(f"📄 Skillset file path: {SKILLSET_FILE_PATH}")
-print(f"🌐 Server will run on: {HOST}:{PORT}")
+config.print_config()
 
 # Pydantic models for validation
 class IndexField(BaseModel):

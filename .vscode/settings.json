@@ -1,0 +1,56 @@
+{
+    "python.defaultInterpreterPath": "./venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackArgs": ["--line-length", "88"],
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        "**/venv": true,
+        "**/.env": true
+    },
+    "files.associations": {
+        "*.env": "dotenv",
+        "*.env.*": "dotenv"
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    "emmet.includeLanguages": {
+        "jinja-html": "html"
+    },
+    "html.format.indentInnerHtml": true,
+    "html.format.preserveNewLines": true,
+    "css.validate": true,
+    "javascript.validate.enable": true,
+    "json.schemas": [
+        {
+            "fileMatch": ["azure_configs/*.json"],
+            "url": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/search/data-plane/Microsoft.Azure.Search.Service/preview/2021-04-30-preview/searchindex.json"
+        }
+    ],
+    "search.exclude": {
+        "**/venv": true,
+        "**/__pycache__": true,
+        "**/node_modules": true,
+        "**/.git": true
+    },
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    "python.analysis.extraPaths": [
+        "./"
+    ],
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic"
+}
